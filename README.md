@@ -18,8 +18,8 @@ The first public release is being prepared. Install instructions below apply onc
 Once, on your computer:
 
 ```bash
-claude plugin marketplace add <account>/<repository>
-claude plugin install playbook@<repository>
+claude plugin marketplace add sparkyardhq/playbook-plugin
+claude plugin install playbook@playbook-plugin
 ```
 
 Then, in each project you want to run with Playbook, start Claude Code and run:
@@ -41,7 +41,7 @@ Playbook keeps itself up to date: when a new version is published here, it insta
 To update by hand at any time:
 
 ```bash
-claude plugin update playbook@<repository>
+claude plugin update playbook@playbook-plugin
 ```
 
 ## What it sends
