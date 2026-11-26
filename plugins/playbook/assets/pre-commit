@@ -1,0 +1,5 @@
+#!/bin/sh
+# playbook-pre-commit: written by `playbook precommit install`; remove it with `playbook precommit uninstall` (or delete this file)
+NODE="@NODE@"; ENTRY="@PLUGIN_ROOT@/playbook/guard/preCommit.mjs"
+for p in "$NODE" "$ENTRY"; do [ -e "$p" ] || { echo "the Playbook pre-commit hook is stale ($p missing): run \`playbook precommit install\` again, or \`git commit --no-verify\` once" >&2; exit 1; }; done
+exec "$NODE" "$ENTRY" "$(git rev-parse --show-toplevel)"

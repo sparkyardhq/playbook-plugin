@@ -1,0 +1,11 @@
+{
+  "name": "playbook",
+  "version": "0.2.0",
+  "description": "The Playbook: a project's records, its Clerk, and its local dashboard for a Board and its developers.",
+  "author": {
+    "name": "SparkYard"
+  },
+  "homepage": "https://github.com/sparkyardhq/playbook-plugin",
+  "repository": "https://github.com/sparkyardhq/playbook-plugin",
+  "license": "SEE LICENSE IN LICENSE"
+}

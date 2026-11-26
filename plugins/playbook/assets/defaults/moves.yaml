@@ -1,0 +1,62 @@
+# .playbook/moves.yaml — the reference's §16 as data, minus `go` (v2 row 1). The Clerk refuses any state change not listed here.
+# from: a state, a list of states, or `open` (every open state of the kind). by: the one command that may make the move.
+# `held` is reached only by `park` and left only by `park … off`, back to the state it held from.
+# task
+- { kind: task, from: ready, to: planned, by: move }            # the PLAN is filed
+- { kind: task, from: planned, to: building, by: approve }      # the Owner approves the plan
+- { kind: task, from: building, to: audited, by: move }         # audit PASS
+- { kind: task, from: audited, to: uat, by: move }              # a round is issued
+- { kind: task, from: uat, to: closed, by: move }               # commit
+- { kind: task, from: uat, to: closed, by: landed }          # [T-0097] a task in uat whose rounds are all done and one passed: `landed T-n <sha>`
+- { kind: task, from: uat, to: building, by: uat }              # a UAT fail before commit
+- { kind: task, from: [planned, building], to: blocked, by: move }
+- { kind: task, from: blocked, to: [planned, building], by: move }
+- { kind: task, from: open, to: held, by: park }
+- { kind: task, from: open, to: superseded, by: move }          # a ruling
+- { kind: task, from: audited, to: closed, by: landed }          # [DF-176 · D2104] an audited task whose code landed with no live round: `landed T-n <sha> --close --decision D<n>`
+- { kind: task, from: [ready, planned, building, audited], to: closed, by: finish }   # [DF-118 · D1476] a task with no code (no steps, no round), on the Owner's word
+# design
+- { kind: design, from: drafted, to: approved, by: approve }
+- { kind: design, from: approved, to: [partial, built], by: move }
+- { kind: design, from: partial, to: built, by: move }
+- { kind: design, from: open, to: superseded, by: move }
+- { kind: design, from: open, to: held, by: park }              # [DF-194 · D2020] paused exactly as a task; `park … off` brings it back to held_from
+# plan [the-implementation-plan-kind · T-0031 · D1334: Q1 A done only when nothing under it is open (the Clerk checks); Q2 A in-progress by the Board]
+- { kind: plan, from: drafted, to: approved, by: approve }
+- { kind: plan, from: approved, to: in-progress, by: move }     # the Board, at the first dispatch
+- { kind: plan, from: approved, to: done, by: move }            # [DF-144 · D633] a plan never dispatched as in-progress; refused while anything under it or in its tasks: is open
+- { kind: plan, from: in-progress, to: done, by: move }
+- { kind: plan, from: open, to: superseded, by: move }
+# idea (stored in 1.1; computed from its children from 1.2 on, P5 A)
+- { kind: idea, from: proposed, to: designing, by: move }
+- { kind: idea, from: designing, to: in-progress, by: move }
+- { kind: idea, from: in-progress, to: done, by: move }
+- { kind: idea, from: open, to: dropped, by: move }
+- { kind: idea, from: open, to: held, by: park }                # [T-0062 · D1727 Q4 C] paused exactly as a task; `park … off` brings it back
+# defect
+- { kind: defect, from: reported, to: ranked, by: priority }
+- { kind: defect, from: ranked, to: in-task, by: move }         # an approved plan names it
+- { kind: defect, from: in-task, to: fixed, by: move }          # the commit that fixed it
+- { kind: defect, from: open, to: wontfix, by: priority }
+# [T-0032 · DG-025 Q5 A, D1388] a defect worked like a task (no task record); in-task (Q6 A, existing records) reads as building
+- { kind: defect, from: ranked, to: planned, by: move }         # the PLAN is filed
+- { kind: defect, from: planned, to: building, by: approve }    # the Owner approves the plan
+- { kind: defect, from: [building, in-task], to: audited, by: move }   # audit PASS
+- { kind: defect, from: audited, to: fixed, by: move }          # closes on a passed check or a verdict (D1232; commands.mjs proofOf)
+- { kind: defect, from: audited, to: fixed, by: landed }  # [T-0097] an audited defect with a proof: `landed DF-n <sha>`
+- { kind: defect, from: open, to: held, by: park }              # Q1 A: paused exactly as a task
+- { kind: defect, from: [wontfix, fixed], to: ranked, by: reopen }   # [DF-230 · D2129 Q2 A] an archived defect comes back (reopen.mjs)
+- { kind: idea, from: [done, dropped], to: proposed, by: reopen }   # [T-0175 · D888] an archived record of any kind comes back (reopen.mjs)
+- { kind: design, from: [built, superseded], to: approved, by: reopen }
+- { kind: task, from: [closed, superseded], to: ready, by: reopen }
+- { kind: plan, from: [done, superseded], to: approved, by: reopen }
+- { kind: uat, from: [passed, failed, waived, n/a, superseded], to: issued, by: reopen }
+- { kind: adhoc, from: [closed], to: open, by: reopen }
+# uat
+- { kind: uat, from: issued, to: [passed, failed, waived], by: uat }
+- { kind: uat, from: issued, to: [n/a, superseded], by: move }
+- { kind: uat, from: issued, to: parked, by: park }
+- { kind: uat, from: failed, to: superseded, by: move }   # [DF-156 · D1762 Q1 A] the Board's step when it issues a replacement round
+# adhoc [ad-hoc-items · T-0024 · D1229]
+- { kind: adhoc, from: [open, answered], to: answered, by: answer }   # a re-answer adds a reply to the thread (DF-141)
+- { kind: adhoc, from: [open, answered], to: closed, by: adhoc }      # `adhoc <n> ok`, or `new … --from <n>`

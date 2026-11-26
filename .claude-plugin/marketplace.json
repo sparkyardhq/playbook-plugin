@@ -1,0 +1,11 @@
+{
+  "name": "playbook-plugin",
+  "owner": { "name": "SparkYard" },
+  "plugins": [
+    {
+      "name": "playbook",
+      "source": "./plugins/playbook",
+      "description": "The Playbook: a project's records, its Clerk, and its local dashboard for a Board and its developers."
+    }
+  ]
+}

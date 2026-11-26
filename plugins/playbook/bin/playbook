@@ -1,0 +1,82 @@
+#!/bin/sh
+# [T-0144 step 2b · D801] THE INSTALLED PLUGIN'S LAUNCHER (bin/playbook in the package; written by build/build.mjs, never shipped from source).
+# It runs THIS plugin version's program from the plugin home: <PLAYBOOK_HOME, else ~/.playbook>/runtime/<plugin.json version>/playbook-<os>-<arch>,
+# naming the plugin folder in PLAYBOOK_PLUGIN_ROOT. A missing program is said in one line: exit 2 for a word; for `run-hook` exit 0 (a hook must not
+# block every tool while the program is not there yet). [DF-201 · D801 · AH-168 #7]
+# The one exception, fail closed: `run-hook guard` in a project whose project.yaml turns the guard on (or cannot be read) denies every tool but the read-only
+# ones, so a missing program never lets an unchecked write, command or browser call through.
+# ⛔ [DF-293 · D1061 Q1 A, Q2 A · the Board's audit] THE FIRST FETCH: a missing program is downloaded from this version's GitHub release and checked against
+# the checksum list the package ships (assets/checksums.txt: the same package as this launcher, so as trusted as it). https only, to github.com and GitHub's
+# download hosts (the final URL after redirects is checked too); PLAYBOOK_RELEASE_BASE (tests and the clean install only) may name a file:// base and nothing
+# else. The download goes to a part file in the runtime folder, is checked there, and one mv puts it in place: the place never holds a half file. One fetch at a
+# time (a lock folder). A word waits for it; a hook starts it in the background and answers at once (Q2 A). Any failure leaves nothing and is said after the
+# RED line. Later versions come through self-update, which checks checksums.txt's signature against assets/update-key.pub (T-0190).
+SELF="$0"
+while [ -h "$SELF" ]; do L="$(readlink "$SELF")"; case "$L" in /*) SELF="$L" ;; *) SELF="$(dirname "$SELF")/$L" ;; esac; done
+PLUGIN="$(cd "$(dirname "$SELF")/.." && pwd)"
+VERSION="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([0-9][0-9.]*\)".*/\1/p' "$PLUGIN/.claude-plugin/plugin.json" | head -n 1)"
+case "${PLAYBOOK_UNAME:-$(uname -s)-$(uname -m)}" in
+  Darwin-arm64) T=darwin-arm64 ;;
+  Darwin-x86_64) T=darwin-x64 ;;
+  Linux-x86_64) T=linux-x64 ;;
+  MINGW*-x86_64|MSYS*-x86_64|CYGWIN*-x86_64) T=win-x64.exe ;;
+  *) echo "RED unsupported-platform -: the Playbook has no program for $(uname -s) $(uname -m)" >&2; exit 2 ;;
+esac
+EXE="${PLAYBOOK_HOME:-$HOME/.playbook}/runtime/$VERSION/playbook-$T"
+WHY=""
+# the first fetch; 0 when the program is in place, else 1 with WHY set (nothing left behind)
+fetch_program() {
+  NAME="playbook-$T"; RT="$(dirname "$EXE")"; SUMS="$PLUGIN/assets/checksums.txt"
+  [ -r "$SUMS" ] || { WHY="the package has no checksum list (assets/checksums.txt)"; return 1; }
+  WANT="$(awk -v n="$NAME" '$2 == n { print $1; exit }' "$SUMS")"
+  [ -n "$WANT" ] || { WHY="the package's checksum list has no line for $NAME"; return 1; }
+  command -v curl >/dev/null 2>&1 || { WHY="curl is not installed"; return 1; }
+  if command -v shasum >/dev/null 2>&1; then SHA="shasum -a 256"; elif command -v sha256sum >/dev/null 2>&1; then SHA="sha256sum"; else WHY="no shasum or sha256sum to check the download"; return 1; fi
+  if [ -n "$PLAYBOOK_RELEASE_BASE" ]; then
+    case "$PLAYBOOK_RELEASE_BASE" in file://*) BASE="$PLAYBOOK_RELEASE_BASE"; PROTO="=file" ;; *) WHY="PLAYBOOK_RELEASE_BASE may only name a file:// folder (the tests' release)"; return 1 ;; esac
+  else
+    REPO="$(sed -n 's/.*"repository"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$PLUGIN/.claude-plugin/plugin.json" | head -n 1)"
+    case "$REPO" in https://github.com/*/*) ;; *) WHY="the package names no GitHub repository (plugin.json repository: \"$REPO\")"; return 1 ;; esac
+    BASE="${REPO%/}/releases/download/v$VERSION"; PROTO="=https"
+  fi
+  mkdir -p "$RT" 2>/dev/null || { WHY="cannot make $RT"; return 1; }
+  LOCK="$RT/.fetch.lock"; n=0
+  while ! mkdir "$LOCK" 2>/dev/null; do
+    [ -x "$EXE" ] && return 0
+    [ -n "$(find "$LOCK" -maxdepth 0 -mmin +10 2>/dev/null)" ] && { rmdir "$LOCK" 2>/dev/null; continue; }   # a lock left by a run that died
+    n=$((n + 1)); [ "$n" -gt 120 ] && { WHY="another run has been fetching it for two minutes; try again"; return 1; }
+    sleep 1
+  done
+  PART="$RT/.$NAME.$$.part"
+  EFF="$(curl -fsSL --proto "$PROTO" --proto-redir =https --max-redirs 5 -o "$PART" -w '%{url_effective}' "$BASE/$NAME" 2>/dev/null)"; OK=$?
+  if [ "$OK" -ne 0 ]; then WHY="the download of $BASE/$NAME failed (curl exit $OK)"
+  else case "$EFF" in
+      file://*) [ -n "$PLAYBOOK_RELEASE_BASE" ] || WHY="the download ended at $EFF" ;;
+      https://github.com/*|https://objects.githubusercontent.com/*|https://release-assets.githubusercontent.com/*) ;;
+      *) WHY="the download was redirected to $EFF, not GitHub" ;;
+    esac
+  fi
+  if [ -z "$WHY" ]; then GOT="$($SHA "$PART" 2>/dev/null | awk '{ print $1 }')"; [ "$GOT" = "$WANT" ] || WHY="$NAME's checksum is $(printf %.12s "$GOT"), the package's list says $(printf %.12s "$WANT")"; fi
+  if [ -z "$WHY" ]; then chmod 755 "$PART" && mv -f "$PART" "$EXE" || WHY="could not put $NAME in place"; fi
+  rm -f "$PART"; rmdir "$LOCK" 2>/dev/null
+  [ -z "$WHY" ]
+}
+if [ -n "$VERSION" ] && [ ! -x "$EXE" ]; then
+  if [ "$1" = run-hook ]; then ( fetch_program ) >/dev/null 2>&1 &   # [DF-293 Q2 A] a hook never waits on the download
+  else fetch_program; fi
+fi
+if [ -z "$VERSION" ] || [ ! -x "$EXE" ]; then
+  echo "RED no-runtime -: the Playbook program $VERSION for $T is not installed ($EXE); install a release that includes it" >&2
+  [ -n "$WHY" ] && echo "  the first fetch: $WHY" >&2
+  if [ "$1" = run-hook ] && [ "$2" = guard ]; then
+    PROJ="${CLAUDE_PROJECT_DIR:-$PWD}/.playbook/project.yaml"
+    if [ -e "$PROJ" ] && { [ ! -r "$PROJ" ] || sed -n '/^hooks:/,/^[^[:space:]#]/p' "$PROJ" | grep -Eq '^[[:space:]]+guard:[[:space:]]*(on|true)([[:space:]]|#|$)'; }; then
+      TOOL="$(sed -n 's/.*"tool_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
+      case "$TOOL" in Read|Grep|Glob|LS) exit 0 ;; esac
+      printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"⛔ guard: the Playbook program %s is not installed, so the guard cannot check this tool (only Read, Grep, Glob and LS run); install it, or turn the guard off in .playbook/project.yaml"}}\n' "$VERSION"
+    fi
+  fi
+  [ "$1" = run-hook ] && exit 0
+  exit 2
+fi
+PLAYBOOK_PLUGIN_ROOT="$PLUGIN" exec "$EXE" "$@"

@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/playbook\" run-hook guard", "timeout": 15 }] },
+      { "matcher": "Write|Edit", "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/playbook\" run-hook validate", "timeout": 15 }] },
+      { "matcher": "mcp__Claude_Browser__.*|mcp__claude-in-chrome__.*|WebFetch", "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/playbook\" run-hook no-owner-instance", "timeout": 15 }] },
+      { "matcher": "Grep|Glob", "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/playbook\" run-hook graphify-first", "timeout": 5 }] },
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/playbook\" run-hook allow-list", "timeout": 5 }] }
+    ],
+    "PostToolUse": [
+      { "matcher": "Write|Edit", "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/playbook\" run-hook rebuild", "timeout": 60 }] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/playbook\" run-hook owner-words", "timeout": 15 }] },
+      { "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/playbook\" run-hook adhoc-prompt", "timeout": 15 }] }
+    ],
+    "ConfigChange": [
+      { "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/playbook\" run-hook config-gate", "timeout": 15 }] }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/playbook\" run-hook end-of-turn", "timeout": 30 }] }
+    ],
+    "PreCompact": [
+      { "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/playbook\" run-hook handovers", "timeout": 15 }] }
+    ],
+    "PostCompact": [
+      { "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/playbook\" run-hook handovers", "timeout": 15 }] }
+    ],
+    "SessionStart": [
+      { "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/playbook\" run-hook briefing", "timeout": 15 }] }
+    ],
+    "SessionEnd": [
+      { "hooks": [{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/playbook\" run-hook briefing", "timeout": 15 }] }
+    ]
+  }
+}

@@ -1,0 +1,54 @@
+Playbook for Claude Code — Licence
+
+Copyright (c) 2026 SparkYard (https://github.com/sparkyardhq/). All rights reserved.
+
+1. Use. You may download, install and use this software (the "Software"),
+   free of charge, for personal or commercial work.
+
+2. Restrictions. You may not, and may not let anyone else:
+   a. copy the Software, except as needed to install and run it;
+   b. modify, adapt, translate or create derivative works of it;
+   c. reverse engineer, decompile or disassemble it, except to the extent
+      the law where you live allows this despite this restriction;
+   d. redistribute, publish, rent, lend, sublicense or sell it; or
+   e. remove or change any notice of ownership in it.
+
+3. Ownership. The Software is licensed, not sold. The copyright holder keeps
+   all rights not expressly granted here. Parts of the Software made by
+   others keep their own licences; see THIRD-PARTY-NOTICES.
+
+4. Updates. This version does not update itself: you update it with
+   claude plugin update. On its first run it downloads its own program
+   once, and that download sends no project data: no project, name, path
+   or file. A later version may check for updates; its changelog will say
+   so. This licence covers every version you install, unless it comes with
+   a different licence.
+
+5. No warranty. The Software is provided "as is", without warranty of any
+   kind, express or implied, including fitness for a particular purpose.
+
+6. Limitation of liability. To the extent the law allows, the copyright
+   holder is not liable for any damages arising from the use of, or the
+   inability to use, the Software.
+
+7. Termination. This licence ends automatically if you break its terms.
+   When it ends, you must stop using the Software and delete every copy.
+   Sections 5, 6 and 8 survive the end of this licence.
+
+8. Your work. You own what you make with the Software: your code, records,
+   documents and other output. This licence gives the copyright holder no
+   rights in them.
+
+9. Claude and Anthropic. The Software is not made, endorsed or supported by
+   Anthropic. "Claude" and "Claude Code" are trademarks of Anthropic. Your
+   use of Claude, including its accounts, limits and costs, is between you
+   and Anthropic, and is yours to bear.
+
+10. Severability. If a court finds part of this licence unenforceable, that
+    part is changed only as much as needed to make it enforceable, and the
+    rest stays in force.
+
+11. Governing law. This licence is governed by the laws of
+    the United States of America and Canada.
+
+12. Contact. Questions about this licence: https://github.com/sparkyardhq/

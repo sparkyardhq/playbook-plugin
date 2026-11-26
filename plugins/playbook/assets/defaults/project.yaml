@@ -1,0 +1,115 @@
+# .playbook/project.yaml — the Playbook's settings for this project (the plugin's generic defaults, T-0048). Every value here is a starting
+# point: a project adds its own protected ports, paths, hosts and commands, its no-start commands and its source paths.
+version: 0.1.0   # this project's own version (T-0182): the Owner's release-project raises it; its history is CHANGELOG.md at the project's root
+kinds:
+  idea:
+    prefix: I-
+    slug_prefix: i
+    folder: ideas
+    width: 3
+    initial: proposed
+    states: [proposed, designing, in-progress, done, dropped, held]
+    open: [proposed, designing, in-progress]
+    closed: [done, dropped]         
+  design:
+    prefix: DG-
+    slug_prefix: dg
+    folder: designs
+    width: 3
+    initial: drafted
+    states: [drafted, approved, partial, built, superseded, held]
+    open: [drafted, approved, partial]
+    closed: [built, superseded]
+  task:
+    prefix: T-
+    slug_prefix: t
+    folder: tasks
+    width: 4
+    initial: ready
+    states: [ready, planned, building, audited, uat, closed, held, blocked, superseded]
+    open: [ready, planned, building, audited, uat, blocked]
+    closed: [closed, superseded]       # held is in neither: never archived, keeps its parent
+  defect:
+    prefix: DF-
+    slug_prefix: df
+    folder: defects
+    width: 3
+    initial: reported
+ 
+    states: [reported, ranked, planned, building, audited, in-task, held, fixed, wontfix]
+    open: [reported, ranked, planned, building, audited, in-task]
+    closed: [fixed, wontfix]
+  plan:
+    prefix: IP-
+    slug_prefix: ip
+    folder: plans
+    width: 3
+    initial: drafted
+    states: [drafted, approved, in-progress, done, superseded]
+    open: [drafted, approved, in-progress]
+    closed: [done, superseded]
+  uat:
+    prefix: U
+    slug_prefix: u
+    folder: uat
+    width: 0
+    initial: issued
+    states: [issued, passed, failed, parked, waived, n/a, superseded]
+    open: [issued, parked]
+    closed: [passed, failed, waived, n/a, superseded]
+  adhoc:
+    prefix: AH-
+    slug_prefix: ah
+    folder: adhoc
+    width: 3
+    initial: open
+    states: [open, answered, closed]
+    open: [open, answered]
+    closed: [closed]
+lanes: { max_allowed: 4 }
+autopilot: { kinds: [bugfix-measured, test-only, docs-only, zero-behaviour-extraction] }
+roles: { owner: Owner, board: board, lanes: [dev-a, dev-b] }
+protected:   # never bind, probe, kill, write, connect or run: this project's own (empty until it names them)
+  ports: []
+  paths: []
+  hosts: []
+  commands: []
+guard_allow: []
+no_start: []
+lane_protected: [".claude/**", ".playbook/project.yaml", ".playbook/moves.yaml", ".playbook/templates/**"]
+probe_files: ["zz_probe*", "*.probe.*"]
+lane_push: never
+source_paths: []
+# The rounds' case verdicts.
+case_verdicts: [issued, passed, failed, parked, waived, n/a]
+# The record's own priority; `wontfix` is a defect's only (it closes it).
+priorities: [top, high, medium, low]
+# §4: who may sit under whom. `none` = no parent (an idea at the top; a defect in the root Defects folder).
+parent_rule:
+  idea: [idea, none]
+  design: [idea, task]
+  task: [idea, design, plan]
+  defect: [task, idea, plan, none]
+  plan: [design, idea]
+  uat: [task, defect, none]
+  adhoc: [none]    
+dashboard:
+  out: DASHBOARD.html
+browser:
+  path: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+# [T-0049 · D50, the Board's ruling D107] each Playbook hook's switch (plugin/hooks/hooks.json, plugin/hooks/load.mjs). A hook whose switch is missing is off;
+# a project.yaml that cannot be read makes the guard deny and every other hook say so.
+hooks:
+  guard: on
+  owner-words: on
+  end-of-turn: on
+  no-owner-instance: on   # [T-0113] a browser tool may not open a protected local port
+  graphify-first: on      # [T-0114] the first search of a session suggests the code graph, when there is one; never blocks
+  validate: off
+  rebuild: off
+  config-gate: off
+  allow-list: off         # [T-0027 · D582 Q1 A] one plain safe command (the Clerk, the tests, git reads, graphify) runs without asking; off until you turn it on
+  adhoc-prompt: off       # [T-0073] the Owner's line typed in the Board's session becomes an ad hoc item; off until turned on in Settings › Hooks
+  handovers: off        # [T-0026] PreCompact blocks once for a stale handover.md; PostCompact re-injects the handovers
+  briefing: off         # [T-0026] SessionStart adds the brief; SessionEnd releases the session's lock and claims
